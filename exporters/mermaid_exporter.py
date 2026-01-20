@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import Optional, Dict, Set
+from typing import Optional, Dict, Set, List
 
 from graph.model import ReferenceGraph
 
@@ -15,6 +15,7 @@ def to_mermaid(
     group_by_directory: bool = False,
     include_missing: bool = True,
     include_remote: bool = True,
+    show_all: bool = False,
 ) -> str:
     """
     Convert a reference graph to Mermaid flowchart syntax.
@@ -27,6 +28,7 @@ def to_mermaid(
         group_by_directory: If True, group nodes by top-level directory.
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
+        show_all: If True, include nodes with no connections. Default False.
     
     Returns:
         Mermaid flowchart string.
@@ -36,9 +38,15 @@ def to_mermaid(
     
     lines = [f"flowchart {orientation}"]
     
-    # Build node ID mapping
+    # Get the set of nodes to consider
+    if show_all:
+        nodes_to_show = graph.nodes
+    else:
+        nodes_to_show = graph.get_connected_nodes()
+    
+    # Build node ID mapping for filtered nodes
     node_ids: Dict[Path, str] = {}
-    for node in sorted(graph.nodes):
+    for node in sorted(nodes_to_show):
         node_ids[node] = _sanitize_id(node, root)
     
     # Build missing node ID mapping
@@ -56,9 +64,9 @@ def to_mermaid(
                 remote_ids[url] = _sanitize_id_simple(f"remote_{url}")
     
     if group_by_directory:
-        lines.extend(_generate_grouped_mermaid(graph, root, node_ids, missing_ids, remote_ids, include_missing, include_remote))
+        lines.extend(_generate_grouped_mermaid(graph, root, node_ids, missing_ids, remote_ids, include_missing, include_remote, nodes_to_show))
     else:
-        lines.extend(_generate_flat_mermaid(graph, root, node_ids, missing_ids, remote_ids, include_missing, include_remote))
+        lines.extend(_generate_flat_mermaid(graph, root, node_ids, missing_ids, remote_ids, include_missing, include_remote, nodes_to_show))
     
     return "\n".join(lines)
 
@@ -71,12 +79,13 @@ def _generate_flat_mermaid(
     remote_ids: Dict[str, str],
     include_missing: bool,
     include_remote: bool,
-) -> list:
+    nodes_to_show: Set[Path],
+) -> List:
     """Generate flat (non-grouped) Mermaid output."""
     lines = []
     
     # Add node definitions with labels
-    for node in sorted(graph.nodes):
+    for node in sorted(nodes_to_show):
         node_id = node_ids[node]
         label = _get_label(node, root)
         lines.append(f'    {node_id}["{label}"]')
@@ -131,13 +140,14 @@ def _generate_grouped_mermaid(
     remote_ids: Dict[str, str],
     include_missing: bool,
     include_remote: bool,
-) -> list:
+    nodes_to_show: Set[Path],
+) -> List:
     """Generate Mermaid output with subgraphs grouped by top-level directory."""
     lines = []
     
     # Group nodes by top-level directory
     groups: Dict[str, Set[Path]] = {}
-    for node in graph.nodes:
+    for node in nodes_to_show:
         try:
             rel_path = node.resolve().relative_to(root.resolve())
             top_dir = rel_path.parts[0] if len(rel_path.parts) > 1 else "root"

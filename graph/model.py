@@ -140,6 +140,42 @@ class ReferenceGraph:
             for url in sorted(urls):
                 yield source, url
     
+    def get_connected_nodes(self) -> Set[Path]:
+        """
+        Get nodes that are connected to other files.
+        
+        A node is considered connected if:
+        - It has outgoing edges (references other files)
+        - It is referenced by another file (is a target)
+        - It has missing references
+        - It has remote/URL references
+        
+        Returns:
+            Set of connected nodes.
+        """
+        connected: Set[Path] = set()
+        
+        # Nodes with outgoing edges
+        for source in self._edges:
+            if self._edges[source]:  # Has at least one target
+                connected.add(source)
+        
+        # Nodes that are targets of edges
+        for targets in self._edges.values():
+            connected.update(targets)
+        
+        # Nodes with missing references
+        for source in self._missing:
+            if self._missing[source]:
+                connected.add(source)
+        
+        # Nodes with remote references
+        for source in self._remote:
+            if self._remote[source]:
+                connected.add(source)
+        
+        return connected
+    
     def __len__(self) -> int:
         """Return the number of nodes in the graph."""
         return len(self._nodes)
