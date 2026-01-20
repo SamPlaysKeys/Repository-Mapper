@@ -1,0 +1,6 @@
+# Local configuration overrides
+debug: true
+log_level: DEBUG
+
+paths:
+  cache: ../cache/app.cache

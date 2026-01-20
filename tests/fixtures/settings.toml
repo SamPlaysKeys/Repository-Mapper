@@ -1,0 +1,9 @@
+[app]
+name = "TestApp"
+config = "config/app.yaml"
+
+[logging]
+output = "./logs/debug.log"
+
+[build]
+entry = "src/main.py"

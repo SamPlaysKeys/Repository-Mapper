@@ -1,0 +1,5 @@
+# Environment configuration
+DATABASE_URL=postgres://localhost/mydb
+CONFIG_PATH=./config/app.yaml
+SECRETS_FILE=/secrets/api.key
+LOG_FILE=logs/app.log

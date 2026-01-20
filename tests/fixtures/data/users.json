@@ -1,0 +1,15 @@
+{
+  "schema": "schemas/user.json",
+  "users": [
+    {
+      "id": 1,
+      "name": "Alice",
+      "avatar": "../assets/avatars/alice.png"
+    },
+    {
+      "id": 2,
+      "name": "Bob",
+      "avatar": "../assets/avatars/bob.png"
+    }
+  ]
+}

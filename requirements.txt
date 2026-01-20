@@ -1,0 +1,9 @@
+# Core dependencies
+PyYAML>=6.0
+
+# Optional: TOML support for Python < 3.11
+# toml>=0.10.2
+
+# Development/Testing
+pytest>=7.0
+pytest-cov>=4.0

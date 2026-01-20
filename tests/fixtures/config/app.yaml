@@ -1,0 +1,15 @@
+# Main application configuration
+app:
+  name: TestApp
+  version: "1.0.0"
+
+# File references
+data:
+  users_file: "../data/users.json"
+  local_config: "./local.yaml"
+
+templates:
+  main: "../templates/main.html"
+
+database:
+  schema_path: /schemas/db.json
