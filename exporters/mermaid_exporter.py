@@ -15,6 +15,7 @@ def to_mermaid(
     group_by_directory: bool = False,
     include_missing: bool = True,
     include_remote: bool = True,
+    include_templates: bool = False,
     show_all: bool = False,
 ) -> str:
     """
@@ -28,6 +29,7 @@ def to_mermaid(
         group_by_directory: If True, group nodes by top-level directory.
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
+        include_templates: If True, show template (Jinja placeholder) references.
         show_all: If True, include nodes with no connections. Default False.
     
     Returns:
@@ -63,10 +65,17 @@ def to_mermaid(
             if url not in remote_ids:
                 remote_ids[url] = _sanitize_id_simple(f"remote_{url}")
     
+    # Build template node ID mapping
+    template_ids: Dict[str, str] = {}
+    if include_templates:
+        for source, candidate in graph.iter_templates():
+            if candidate not in template_ids:
+                template_ids[candidate] = _sanitize_id_simple(f"template_{candidate}")
+    
     if group_by_directory:
-        lines.extend(_generate_grouped_mermaid(graph, root, node_ids, missing_ids, remote_ids, include_missing, include_remote, nodes_to_show))
+        lines.extend(_generate_grouped_mermaid(graph, root, node_ids, missing_ids, remote_ids, template_ids, include_missing, include_remote, include_templates, nodes_to_show))
     else:
-        lines.extend(_generate_flat_mermaid(graph, root, node_ids, missing_ids, remote_ids, include_missing, include_remote, nodes_to_show))
+        lines.extend(_generate_flat_mermaid(graph, root, node_ids, missing_ids, remote_ids, template_ids, include_missing, include_remote, include_templates, nodes_to_show))
     
     return "\n".join(lines)
 
@@ -77,8 +86,10 @@ def _generate_flat_mermaid(
     node_ids: Dict[Path, str],
     missing_ids: Dict[str, str],
     remote_ids: Dict[str, str],
+    template_ids: Dict[str, str],
     include_missing: bool,
     include_remote: bool,
+    include_templates: bool,
     nodes_to_show: Set[Path],
 ) -> List:
     """Generate flat (non-grouped) Mermaid output."""
@@ -108,6 +119,15 @@ def _generate_flat_mermaid(
             lines.append(f'    {remote_id}["{url} [REMOTE]"]')
             lines.append(f"    style {remote_id} stroke:#0066cc,stroke-dasharray: 5 5")
     
+    # Add template node definitions (with different style)
+    if include_templates and template_ids:
+        lines.append("")
+        lines.append("    %% Template references")
+        for candidate in sorted(template_ids.keys()):
+            template_id = template_ids[candidate]
+            lines.append(f'    {template_id}["{candidate} [TEMPLATE]"]')
+            lines.append(f"    style {template_id} stroke:#9933cc,stroke-dasharray: 5 5")
+    
     # Add edges
     lines.append("")
     for source, target in graph.iter_edges():
@@ -129,6 +149,13 @@ def _generate_flat_mermaid(
             remote_id = remote_ids[url]
             lines.append(f"    {source_id} -.-> {remote_id}")
     
+    # Add template edges (dashed)
+    if include_templates:
+        for source, candidate in graph.iter_templates():
+            source_id = node_ids[source]
+            template_id = template_ids[candidate]
+            lines.append(f"    {source_id} -.-> {template_id}")
+    
     return lines
 
 
@@ -138,8 +165,10 @@ def _generate_grouped_mermaid(
     node_ids: Dict[Path, str],
     missing_ids: Dict[str, str],
     remote_ids: Dict[str, str],
+    template_ids: Dict[str, str],
     include_missing: bool,
     include_remote: bool,
+    include_templates: bool,
     nodes_to_show: Set[Path],
 ) -> List:
     """Generate Mermaid output with subgraphs grouped by top-level directory."""
@@ -192,6 +221,16 @@ def _generate_grouped_mermaid(
         lines.append("    end")
         lines.append("")
     
+    # Add template nodes in their own group
+    if include_templates and template_ids:
+        lines.append("    subgraph templates[Template References]")
+        for candidate in sorted(template_ids.keys()):
+            template_id = template_ids[candidate]
+            lines.append(f'        {template_id}["{candidate} [TEMPLATE]"]')
+            lines.append(f"        style {template_id} stroke:#9933cc,stroke-dasharray: 5 5")
+        lines.append("    end")
+        lines.append("")
+    
     # Add edges
     for source, target in graph.iter_edges():
         source_id = node_ids[source]
@@ -211,6 +250,13 @@ def _generate_grouped_mermaid(
             source_id = node_ids[source]
             remote_id = remote_ids[url]
             lines.append(f"    {source_id} -.-> {remote_id}")
+    
+    # Add template edges (dashed)
+    if include_templates:
+        for source, candidate in graph.iter_templates():
+            source_id = node_ids[source]
+            template_id = template_ids[candidate]
+            lines.append(f"    {source_id} -.-> {template_id}")
     
     return lines
 
