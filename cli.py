@@ -31,6 +31,7 @@ Examples:
   repomap . -f json -o graph.json    # JSON output to file
   repomap . --include-ext .yaml .yml # Only scan YAML files
   repomap . --ignore-missing         # Hide unresolved file references
+  repomap . --show-all               # Include files with no connections
         """,
     )
     
@@ -120,6 +121,12 @@ Examples:
         help="Hide remote (URL) references from output",
     )
     
+    parser.add_argument(
+        "--show-all",
+        action="store_true",
+        help="Include nodes that have no connections (by default, only connected nodes are shown)",
+    )
+    
     return parser.parse_args(args)
 
 
@@ -163,6 +170,7 @@ def main(args=None):
     # Determine whether to include missing and remote references
     include_missing = not parsed.ignore_missing
     include_remote = not parsed.ignore_remote
+    show_all = parsed.show_all
     
     # Generate output
     if parsed.format == "mermaid":
@@ -174,6 +182,7 @@ def main(args=None):
             group_by_directory=parsed.group_by_dir,
             include_missing=include_missing,
             include_remote=include_remote,
+            show_all=show_all,
         )
     elif parsed.format == "json":
         output = to_json(
@@ -182,6 +191,7 @@ def main(args=None):
             base=base,
             include_missing=include_missing,
             include_remote=include_remote,
+            show_all=show_all,
         )
     else:  # ascii (default)
         output = to_ascii(
@@ -191,6 +201,7 @@ def main(args=None):
             style=parsed.ascii_style,
             include_missing=include_missing,
             include_remote=include_remote,
+            show_all=show_all,
         )
     
     # Write output

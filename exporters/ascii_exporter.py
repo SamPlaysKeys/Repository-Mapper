@@ -26,6 +26,7 @@ def to_ascii(
     style: str = "tree",
     include_missing: bool = True,
     include_remote: bool = True,
+    show_all: bool = False,
 ) -> str:
     """
     Convert a reference graph to ASCII tree representation.
@@ -37,6 +38,7 @@ def to_ascii(
         style: Output style - "tree" (Unicode) or "ascii" (pure ASCII).
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
+        show_all: If True, include nodes with no connections. Default False.
     
     Returns:
         ASCII tree string.
@@ -52,16 +54,25 @@ def to_ascii(
     
     branch, last, vertical, space = chars
     
-    # Get root nodes (nodes that are never targets)
-    root_nodes = sorted(graph.get_roots())
+    # Get the set of nodes to consider
+    if show_all:
+        nodes_to_show = graph.nodes
+    else:
+        nodes_to_show = graph.get_connected_nodes()
+    
+    # Get root nodes (nodes that are never targets) from the filtered set
+    all_targets: Set[Path] = set()
+    for node in nodes_to_show:
+        all_targets.update(graph.get_targets(node))
+    root_nodes = sorted(nodes_to_show - all_targets)
     
     # If no root nodes, fall back to all nodes with outgoing edges
     if not root_nodes:
-        root_nodes = sorted(node for node in graph.nodes if graph.get_targets(node))
+        root_nodes = sorted(node for node in nodes_to_show if graph.get_targets(node))
     
-    # If still no nodes, show all nodes
+    # If still no nodes, show all nodes from filtered set
     if not root_nodes:
-        root_nodes = sorted(graph.nodes)
+        root_nodes = sorted(nodes_to_show)
     
     lines: List[str] = []
     

@@ -13,6 +13,7 @@ A Python CLI and library that scans repositories for cross-file references in YA
 
 - **File Discovery**: Recursively scan directories for configuration files (YAML, JSON, TOML)
 - **Reference Detection**: Automatically detect file path references in configuration files
+- **Smart Filtering**: By default, only shows files that are connected to other files (via references, missing refs, or URLs) - keeping output clean in large repositories
 - **Multiple Export Formats**:
   - **ASCII** (default): Tree-style output for terminal display, scripting, and CI pipelines
   - **Mermaid**: Flowchart syntax for visualization and documentation
@@ -139,7 +140,20 @@ repomap . --ignore-missing
 
 # Hide remote (URL) references from output
 repomap . --ignore-remote
+
+# Show all files, including those with no connections
+repomap . --show-all
 ```
+
+### Filtering Behavior
+
+By default, RepoMap only displays files that have connections:
+- Files that reference other files
+- Files that are referenced by other files
+- Files with unresolved (missing) references
+- Files with remote URL references
+
+This keeps output manageable in large repositories. Use `--show-all` to include all scanned files, even those with no connections.
 
 ### Full CLI Reference
 
@@ -149,7 +163,7 @@ usage: repomap [-h] [-o OUTPUT] [-f {ascii,mermaid,json}]
                [--ascii-style {tree,ascii}] [--include-ext INCLUDE_EXT [INCLUDE_EXT ...]]
                [--exclude-dir EXCLUDE_DIR [EXCLUDE_DIR ...]] [--max-depth MAX_DEPTH]
                [--relative-to RELATIVE_TO] [--ignore-missing] [--ignore-remote]
-               [root]
+               [--show-all] [root]
 
 Scan a repository for cross-file references and generate dependency graphs.
 
@@ -177,6 +191,8 @@ options:
                         Base path for relative path display
   --ignore-missing      Hide missing (unresolved) file references from output
   --ignore-remote       Hide remote (URL) references from output
+  --show-all            Include nodes that have no connections (by default,
+                        only connected nodes are shown)
 ```
 
 ## Library Usage
@@ -193,13 +209,17 @@ graph = build_graph(
     max_depth=5,
 )
 
-# Export to different formats
+# Export to different formats (by default, only connected nodes are shown)
 ascii_output = to_ascii(graph, root=Path("./my-repo"))
 mermaid_output = to_mermaid(graph, root=Path("./my-repo"), orientation="TD")
 json_output = to_json(graph, root=Path("./my-repo"))
 
+# Include all nodes, even those with no connections
+ascii_all = to_ascii(graph, root=Path("./my-repo"), show_all=True)
+
 # Work with the graph directly
 print(f"Found {len(graph)} files")
+print(f"Connected files: {len(graph.get_connected_nodes())}")
 print(f"Root files: {graph.get_roots()}")
 
 for source, target in graph.iter_edges():

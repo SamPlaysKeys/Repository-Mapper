@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Set
 
 from graph.model import ReferenceGraph
 
@@ -14,6 +14,7 @@ def to_json(
     indent: int = 2,
     include_missing: bool = True,
     include_remote: bool = True,
+    show_all: bool = False,
 ) -> str:
     """
     Convert a reference graph to JSON format.
@@ -25,6 +26,7 @@ def to_json(
         indent: JSON indentation level.
         include_missing: If True, include missing (unresolved) references.
         include_remote: If True, include remote (URL) references.
+        show_all: If True, include nodes with no connections. Default False.
     
     Returns:
         JSON string representation of the graph.
@@ -32,9 +34,15 @@ def to_json(
     if base is None:
         base = root
     
+    # Get the set of nodes to consider
+    if show_all:
+        nodes_to_show = graph.nodes
+    else:
+        nodes_to_show = graph.get_connected_nodes()
+    
     # Build nodes list
     nodes: List[str] = []
-    for node in sorted(graph.nodes):
+    for node in sorted(nodes_to_show):
         nodes.append(_get_path_str(node, base, root))
     
     # Build edges list
