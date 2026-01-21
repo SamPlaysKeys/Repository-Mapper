@@ -33,6 +33,14 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
+### Compatibility
+
+Requires Python 3.9+. For best results, use pip 22.3 or newer. If you encounter issues installing on older pip versions (e.g., package installs as "UNKNOWN"), upgrade pip first:
+
+```bash
+pip install --upgrade pip
+```
+
 ## Usage
 
 After installing as a package (`pip install -e .`), use the `repomap` command. If you only installed dependencies, use `python cli.py` instead.
