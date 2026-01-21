@@ -144,8 +144,8 @@ repomap . --ignore-remote
 # Show all files, including those with no connections
 repomap . --show-all
 
-# Show template paths (Jinja {{ }} placeholders)
-repomap . --show-templates
+# Hide template paths (Jinja {{ }} placeholders)
+repomap . --ignore-templates
 ```
 
 ### Filtering Behavior
@@ -155,7 +155,7 @@ By default, RepoMap only displays files that have connections:
 - Files that are referenced by other files
 - Files with unresolved (missing) references
 - Files with remote URL references
-- Files with template references (when `--show-templates` is used)
+- Files with template references (unless `--ignore-templates` is used)
 
 This keeps output manageable in large repositories. Use `--show-all` to include all scanned files, even those with no connections.
 
@@ -167,17 +167,18 @@ RepoMap automatically detects Jinja-style template paths (containing `{{ }}` pla
 config_path: "config/{{ env }}/settings.yaml"
 ```
 
-By default, template paths are **hidden** from output since they cannot be resolved statically. Use `--show-templates` to display them with a `[TEMPLATE]` label:
+By default, template paths are **shown** in output with a `[TEMPLATE]` label:
 
-```bash
-repomap . --show-templates
-```
-
-Output:
 ```
 config/app.yaml
 ├── data/users.json
 └── config/{{ env }}/settings.yaml [TEMPLATE]
+```
+
+Use `--ignore-templates` to hide them from output:
+
+```bash
+repomap . --ignore-templates
 ```
 
 Template paths are tracked separately from missing references - they are not marked as `[MISSING]` since their unresolved state is intentional.
@@ -191,7 +192,7 @@ usage: repomap [-h] [-o OUTPUT] [-f {ascii,mermaid,json}]
                [--exclude-dir EXCLUDE_DIR [EXCLUDE_DIR ...]] [--max-depth MAX_DEPTH]
                [--relative-to RELATIVE_TO] [--ignore-missing] [--ignore-remote]
                [--show-all]
-               [--show-templates]
+               [--ignore-templates]
                [root]
 
 Scan a repository for cross-file references and generate dependency graphs.
@@ -222,7 +223,7 @@ options:
   --ignore-remote       Hide remote (URL) references from output
   --show-all            Include nodes that have no connections (by default,
                         only connected nodes are shown)
-  --show-templates      Show template paths (paths containing Jinja {{ }}
+  --ignore-templates    Hide template paths (paths containing Jinja {{ }}
                         placeholders)
 ```
 

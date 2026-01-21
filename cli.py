@@ -128,9 +128,9 @@ Examples:
     )
     
     parser.add_argument(
-        "--show-templates",
+        "--ignore-templates",
         action="store_true",
-        help="Show template paths (paths containing Jinja {{ }} placeholders)",
+        help="Hide template paths (paths containing Jinja {{ }} placeholders)",
     )
     
     return parser.parse_args(args)
@@ -176,7 +176,7 @@ def main(args=None):
     # Determine whether to include missing, remote, and template references
     include_missing = not parsed.ignore_missing
     include_remote = not parsed.ignore_remote
-    include_templates = parsed.show_templates
+    include_templates = not parsed.ignore_templates
     show_all = parsed.show_all
     
     # Generate output
