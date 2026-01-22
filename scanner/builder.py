@@ -9,6 +9,19 @@ from .parser import parse_file, extract_candidate_paths, extract_urls
 from .resolver import resolve_candidate_path, get_relative_path
 
 
+def is_template_path(candidate: str) -> bool:
+    """
+    Check if a candidate path is a Jinja template (contains {{ }} placeholders).
+    
+    Args:
+        candidate: The candidate path string to check.
+    
+    Returns:
+        True if the path contains Jinja template placeholders.
+    """
+    return "{{ " in candidate and " }}" in candidate
+
+
 def build_graph(
     root: Path,
     include_ext: Optional[Set[str]] = None,
@@ -54,12 +67,20 @@ def build_graph(
             if resolved is not None and resolved != file_path:
                 graph.add_edge(file_path, resolved)
             elif resolved is None:
-                # Track unresolved references as missing
-                graph.add_missing(file_path, candidate)
+                # Check if this is a template path (contains Jinja placeholders)
+                if is_template_path(candidate):
+                    graph.add_template(file_path, candidate)
+                else:
+                    # Track unresolved references as missing
+                    graph.add_missing(file_path, candidate)
         
         # Extract and track remote references (URLs)
+        # Note: A URL can also be a template if it contains Jinja placeholders
         urls = extract_urls(data)
         for url in urls:
             graph.add_remote(file_path, url)
+            # Also track as template if it contains Jinja placeholders
+            if is_template_path(url):
+                graph.add_template(file_path, url)
     
     return graph

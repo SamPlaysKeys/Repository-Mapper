@@ -14,6 +14,7 @@ def to_json(
     indent: int = 2,
     include_missing: bool = True,
     include_remote: bool = True,
+    include_templates: bool = False,
     show_all: bool = False,
 ) -> str:
     """
@@ -26,6 +27,7 @@ def to_json(
         indent: JSON indentation level.
         include_missing: If True, include missing (unresolved) references.
         include_remote: If True, include remote (URL) references.
+        include_templates: If True, include template (Jinja placeholder) references.
         show_all: If True, include nodes with no connections. Default False.
     
     Returns:
@@ -63,6 +65,12 @@ def to_json(
         for source, url in graph.iter_remote():
             source_str = _get_path_str(source, base, root)
             edges.append({"source": source_str, "target": url, "remote": True})
+    
+    # Add template edges if enabled
+    if include_templates:
+        for source, candidate in graph.iter_templates():
+            source_str = _get_path_str(source, base, root)
+            edges.append({"source": source_str, "target": candidate, "template": True})
     
     data: Dict[str, Any] = {
         "nodes": nodes,

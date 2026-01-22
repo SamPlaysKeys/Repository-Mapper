@@ -26,6 +26,7 @@ def to_ascii(
     style: str = "tree",
     include_missing: bool = True,
     include_remote: bool = True,
+    include_templates: bool = False,
     show_all: bool = False,
 ) -> str:
     """
@@ -38,6 +39,7 @@ def to_ascii(
         style: Output style - "tree" (Unicode) or "ascii" (pure ASCII).
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
+        include_templates: If True, show template (Jinja placeholder) references.
         show_all: If True, include nodes with no connections. Default False.
     
     Returns:
@@ -91,6 +93,7 @@ def to_ascii(
             is_root=True,
             include_missing=include_missing,
             include_remote=include_remote,
+            include_templates=include_templates,
         )
         
         # Add blank line between root trees (except after last)
@@ -113,6 +116,7 @@ def _render_node(
     is_root: bool = False,
     include_missing: bool = True,
     include_remote: bool = True,
+    include_templates: bool = False,
 ) -> None:
     """
     Recursively render a node and its children.
@@ -130,6 +134,7 @@ def _render_node(
         is_root: Whether this is a root-level node.
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
+        include_templates: If True, show template (Jinja placeholder) references.
     """
     branch, last, vertical, space = chars
     
@@ -166,7 +171,12 @@ def _render_node(
     if include_remote:
         remote_refs = sorted(graph.get_remote(node))
     
-    total_items = len(children) + len(missing_refs) + len(remote_refs)
+    # Get template references if enabled
+    template_refs: List[str] = []
+    if include_templates:
+        template_refs = sorted(graph.get_templates(node))
+    
+    total_items = len(children) + len(missing_refs) + len(remote_refs) + len(template_refs)
     item_index = 0
     
     # Render resolved children
@@ -193,6 +203,7 @@ def _render_node(
             is_root=False,
             include_missing=include_missing,
             include_remote=include_remote,
+            include_templates=include_templates,
         )
     
     # Render missing references
@@ -222,6 +233,20 @@ def _render_node(
         
         connector = last if remote_is_last else branch
         lines.append(f"{new_prefix}{connector}{url} [REMOTE]")
+    
+    # Render template references
+    for template in template_refs:
+        item_index += 1
+        template_is_last = (item_index == total_items)
+        
+        # Calculate new prefix for template items
+        if is_root:
+            new_prefix = ""
+        else:
+            new_prefix = prefix + (space if is_last else vertical)
+        
+        connector = last if template_is_last else branch
+        lines.append(f"{new_prefix}{connector}{template} [TEMPLATE]")
     
     # Remove from visited when backtracking (to allow the same node
     # to appear in different branches, but still detect immediate cycles)

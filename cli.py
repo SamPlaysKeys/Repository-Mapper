@@ -127,6 +127,12 @@ Examples:
         help="Include nodes that have no connections (by default, only connected nodes are shown)",
     )
     
+    parser.add_argument(
+        "--ignore-templates",
+        action="store_true",
+        help="Hide template paths (paths containing Jinja {{ }} placeholders)",
+    )
+    
     return parser.parse_args(args)
 
 
@@ -167,9 +173,10 @@ def main(args=None):
         print(f"Error scanning repository: {e}", file=sys.stderr)
         return 1
     
-    # Determine whether to include missing and remote references
+    # Determine whether to include missing, remote, and template references
     include_missing = not parsed.ignore_missing
     include_remote = not parsed.ignore_remote
+    include_templates = not parsed.ignore_templates
     show_all = parsed.show_all
     
     # Generate output
@@ -182,6 +189,7 @@ def main(args=None):
             group_by_directory=parsed.group_by_dir,
             include_missing=include_missing,
             include_remote=include_remote,
+            include_templates=include_templates,
             show_all=show_all,
         )
     elif parsed.format == "json":
@@ -191,6 +199,7 @@ def main(args=None):
             base=base,
             include_missing=include_missing,
             include_remote=include_remote,
+            include_templates=include_templates,
             show_all=show_all,
         )
     else:  # ascii (default)
@@ -201,6 +210,7 @@ def main(args=None):
             style=parsed.ascii_style,
             include_missing=include_missing,
             include_remote=include_remote,
+            include_templates=include_templates,
             show_all=show_all,
         )
     

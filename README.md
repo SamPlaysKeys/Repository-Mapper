@@ -33,6 +33,14 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
+### Compatibility
+
+Requires Python 3.9+. For best results, use pip 22.3 or newer. If you encounter issues installing on older pip versions (e.g., package installs as "UNKNOWN"), upgrade pip first:
+
+```bash
+pip install --upgrade pip
+```
+
 ## Usage
 
 After installing as a package (`pip install -e .`), use the `repomap` command. If you only installed dependencies, use `python cli.py` instead.
@@ -143,6 +151,9 @@ repomap . --ignore-remote
 
 # Show all files, including those with no connections
 repomap . --show-all
+
+# Hide template paths (Jinja {{ }} placeholders)
+repomap . --ignore-templates
 ```
 
 ### Filtering Behavior
@@ -152,8 +163,33 @@ By default, RepoMap only displays files that have connections:
 - Files that are referenced by other files
 - Files with unresolved (missing) references
 - Files with remote URL references
+- Files with template references (unless `--ignore-templates` is used)
 
 This keeps output manageable in large repositories. Use `--show-all` to include all scanned files, even those with no connections.
+
+### Template Paths
+
+RepoMap automatically detects Jinja-style template paths (containing `{{ }}` placeholders). These are paths that will be resolved at runtime, such as:
+
+```yaml
+config_path: "config/{{ env }}/settings.yaml"
+```
+
+By default, template paths are **shown** in output with a `[TEMPLATE]` label:
+
+```
+config/app.yaml
+├── data/users.json
+└── config/{{ env }}/settings.yaml [TEMPLATE]
+```
+
+Use `--ignore-templates` to hide them from output:
+
+```bash
+repomap . --ignore-templates
+```
+
+Template paths are tracked separately from missing references - they are not marked as `[MISSING]` since their unresolved state is intentional.
 
 ### Full CLI Reference
 
@@ -163,7 +199,9 @@ usage: repomap [-h] [-o OUTPUT] [-f {ascii,mermaid,json}]
                [--ascii-style {tree,ascii}] [--include-ext INCLUDE_EXT [INCLUDE_EXT ...]]
                [--exclude-dir EXCLUDE_DIR [EXCLUDE_DIR ...]] [--max-depth MAX_DEPTH]
                [--relative-to RELATIVE_TO] [--ignore-missing] [--ignore-remote]
-               [--show-all] [root]
+               [--show-all]
+               [--ignore-templates]
+               [root]
 
 Scan a repository for cross-file references and generate dependency graphs.
 
@@ -193,6 +231,8 @@ options:
   --ignore-remote       Hide remote (URL) references from output
   --show-all            Include nodes that have no connections (by default,
                         only connected nodes are shown)
+  --ignore-templates    Hide template paths (paths containing Jinja {{ }}
+                        placeholders)
 ```
 
 ## Library Usage
@@ -217,6 +257,9 @@ json_output = to_json(graph, root=Path("./my-repo"))
 # Include all nodes, even those with no connections
 ascii_all = to_ascii(graph, root=Path("./my-repo"), show_all=True)
 
+# Include template paths in output
+ascii_with_templates = to_ascii(graph, root=Path("./my-repo"), include_templates=True)
+
 # Work with the graph directly
 print(f"Found {len(graph)} files")
 print(f"Connected files: {len(graph.get_connected_nodes())}")
@@ -224,6 +267,10 @@ print(f"Root files: {graph.get_roots()}")
 
 for source, target in graph.iter_edges():
     print(f"{source} -> {target}")
+
+# Iterate over template references
+for source, template_path in graph.iter_templates():
+    print(f"{source} -> {template_path} [TEMPLATE]")
 ```
 
 ## UX Expectations for Automation

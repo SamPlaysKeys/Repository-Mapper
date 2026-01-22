@@ -17,6 +17,7 @@ class ReferenceGraph:
         self._edges: Dict[Path, Set[Path]] = {}
         self._missing: Dict[Path, Set[str]] = {}  # source -> set of missing path strings
         self._remote: Dict[Path, Set[str]] = {}  # source -> set of remote URLs
+        self._templates: Dict[Path, Set[str]] = {}  # source -> set of template path strings
     
     @property
     def nodes(self) -> Set[Path]:
@@ -37,6 +38,11 @@ class ReferenceGraph:
     def remote(self) -> Dict[Path, Set[str]]:
         """Return remote references (source -> set of URLs)."""
         return {k: v.copy() for k, v in self._remote.items()}
+    
+    @property
+    def templates(self) -> Dict[Path, Set[str]]:
+        """Return template references (source -> set of template path strings)."""
+        return {k: v.copy() for k, v in self._templates.items()}
     
     def add_node(self, node: Path) -> None:
         """Add a node to the graph."""
@@ -97,6 +103,27 @@ class ReferenceGraph:
         """Check if there are any remote references."""
         return bool(self._remote)
     
+    def add_template(self, source: Path, candidate: str) -> None:
+        """
+        Record a template reference (path containing Jinja placeholders).
+        
+        Args:
+            source: The file containing the reference.
+            candidate: The template path string (contains {{ }}).
+        """
+        self._nodes.add(source)
+        if source not in self._templates:
+            self._templates[source] = set()
+        self._templates[source].add(candidate)
+    
+    def get_templates(self, source: Path) -> Set[str]:
+        """Get all template references from the source file."""
+        return self._templates.get(source, set()).copy()
+    
+    def has_templates(self) -> bool:
+        """Check if there are any template references."""
+        return bool(self._templates)
+    
     def get_targets(self, source: Path) -> Set[Path]:
         """Get all files that the source file references."""
         return self._edges.get(source, set()).copy()
@@ -140,6 +167,12 @@ class ReferenceGraph:
             for url in sorted(urls):
                 yield source, url
     
+    def iter_templates(self) -> Iterator[Tuple[Path, str]]:
+        """Iterate over all template references as (source, candidate) tuples."""
+        for source, candidates in self._templates.items():
+            for candidate in sorted(candidates):
+                yield source, candidate
+    
     def get_connected_nodes(self) -> Set[Path]:
         """
         Get nodes that are connected to other files.
@@ -149,6 +182,7 @@ class ReferenceGraph:
         - It is referenced by another file (is a target)
         - It has missing references
         - It has remote/URL references
+        - It has template references
         
         Returns:
             Set of connected nodes.
@@ -174,6 +208,11 @@ class ReferenceGraph:
             if self._remote[source]:
                 connected.add(source)
         
+        # Nodes with template references
+        for source in self._templates:
+            if self._templates[source]:
+                connected.add(source)
+        
         return connected
     
     def __len__(self) -> int:
@@ -187,4 +226,5 @@ class ReferenceGraph:
     def __repr__(self) -> str:
         missing_count = sum(len(m) for m in self._missing.values())
         remote_count = sum(len(r) for r in self._remote.values())
-        return f"ReferenceGraph(nodes={len(self._nodes)}, edges={sum(len(t) for t in self._edges.values())}, missing={missing_count}, remote={remote_count})"
+        template_count = sum(len(t) for t in self._templates.values())
+        return f"ReferenceGraph(nodes={len(self._nodes)}, edges={sum(len(t) for t in self._edges.values())}, missing={missing_count}, remote={remote_count}, templates={template_count})"
