@@ -190,6 +190,7 @@ def main(args=None):
             include_missing=include_missing,
             include_remote=include_remote,
             include_templates=include_templates,
+            include_folders=True,
             show_all=show_all,
         )
     elif parsed.format == "json":
@@ -200,6 +201,7 @@ def main(args=None):
             include_missing=include_missing,
             include_remote=include_remote,
             include_templates=include_templates,
+            include_folders=True,
             show_all=show_all,
         )
     else:  # ascii (default)
@@ -211,6 +213,7 @@ def main(args=None):
             include_missing=include_missing,
             include_remote=include_remote,
             include_templates=include_templates,
+            include_folders=True,
             show_all=show_all,
         )
     

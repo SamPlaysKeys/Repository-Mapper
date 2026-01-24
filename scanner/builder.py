@@ -6,7 +6,7 @@ from typing import Optional, Set
 from graph.model import ReferenceGraph
 from .discovery import iter_files, DEFAULT_EXTENSIONS, DEFAULT_EXCLUDE_DIRS
 from .parser import parse_file, extract_candidate_paths, extract_urls
-from .resolver import resolve_candidate_path, get_relative_path
+from .resolver import resolve_candidate_path, resolve_candidate_directory, get_relative_path
 
 
 def is_template_path(candidate: str) -> bool:
@@ -70,6 +70,9 @@ def build_graph(
                 # Check if this is a template path (contains Jinja placeholders)
                 if is_template_path(candidate):
                     graph.add_template(file_path, candidate)
+                # Check if the path resolves to a directory
+                elif resolve_candidate_directory(file_path, candidate, root) is not None:
+                    graph.add_folder(file_path, candidate)
                 else:
                     # Track unresolved references as missing
                     graph.add_missing(file_path, candidate)

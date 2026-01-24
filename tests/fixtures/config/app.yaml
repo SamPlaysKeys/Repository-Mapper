@@ -7,9 +7,13 @@ app:
 data:
   users_file: "../data/users.json"
   local_config: "./local.yaml"
+  loacl_dir: "/foldertest/folder"
 
 templates:
   main: "../templates/main.html"
 
 database:
   schema_path: /schemas/db.json
+
+folder:
+  location: "/foldertest/folder"

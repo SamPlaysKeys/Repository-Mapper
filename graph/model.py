@@ -18,6 +18,7 @@ class ReferenceGraph:
         self._missing: Dict[Path, Set[str]] = {}  # source -> set of missing path strings
         self._remote: Dict[Path, Set[str]] = {}  # source -> set of remote URLs
         self._templates: Dict[Path, Set[str]] = {}  # source -> set of template path strings
+        self._folders: Dict[Path, Set[str]] = {}  # source -> set of folder path strings
     
     @property
     def nodes(self) -> Set[Path]:
@@ -43,6 +44,11 @@ class ReferenceGraph:
     def templates(self) -> Dict[Path, Set[str]]:
         """Return template references (source -> set of template path strings)."""
         return {k: v.copy() for k, v in self._templates.items()}
+    
+    @property
+    def folders(self) -> Dict[Path, Set[str]]:
+        """Return folder references (source -> set of folder path strings)."""
+        return {k: v.copy() for k, v in self._folders.items()}
     
     def add_node(self, node: Path) -> None:
         """Add a node to the graph."""
@@ -124,6 +130,27 @@ class ReferenceGraph:
         """Check if there are any template references."""
         return bool(self._templates)
     
+    def add_folder(self, source: Path, candidate: str) -> None:
+        """
+        Record a folder reference (path pointing to a directory).
+        
+        Args:
+            source: The file containing the reference.
+            candidate: The folder path string.
+        """
+        self._nodes.add(source)
+        if source not in self._folders:
+            self._folders[source] = set()
+        self._folders[source].add(candidate)
+    
+    def get_folders(self, source: Path) -> Set[str]:
+        """Get all folder references from the source file."""
+        return self._folders.get(source, set()).copy()
+    
+    def has_folders(self) -> bool:
+        """Check if there are any folder references."""
+        return bool(self._folders)
+    
     def get_targets(self, source: Path) -> Set[Path]:
         """Get all files that the source file references."""
         return self._edges.get(source, set()).copy()
@@ -173,6 +200,12 @@ class ReferenceGraph:
             for candidate in sorted(candidates):
                 yield source, candidate
     
+    def iter_folders(self) -> Iterator[Tuple[Path, str]]:
+        """Iterate over all folder references as (source, candidate) tuples."""
+        for source, candidates in self._folders.items():
+            for candidate in sorted(candidates):
+                yield source, candidate
+    
     def get_connected_nodes(self) -> Set[Path]:
         """
         Get nodes that are connected to other files.
@@ -183,6 +216,7 @@ class ReferenceGraph:
         - It has missing references
         - It has remote/URL references
         - It has template references
+        - It has folder references
         
         Returns:
             Set of connected nodes.
@@ -213,6 +247,11 @@ class ReferenceGraph:
             if self._templates[source]:
                 connected.add(source)
         
+        # Nodes with folder references
+        for source in self._folders:
+            if self._folders[source]:
+                connected.add(source)
+        
         return connected
     
     def __len__(self) -> int:
@@ -227,4 +266,5 @@ class ReferenceGraph:
         missing_count = sum(len(m) for m in self._missing.values())
         remote_count = sum(len(r) for r in self._remote.values())
         template_count = sum(len(t) for t in self._templates.values())
-        return f"ReferenceGraph(nodes={len(self._nodes)}, edges={sum(len(t) for t in self._edges.values())}, missing={missing_count}, remote={remote_count}, templates={template_count})"
+        folder_count = sum(len(f) for f in self._folders.values())
+        return f"ReferenceGraph(nodes={len(self._nodes)}, edges={sum(len(t) for t in self._edges.values())}, missing={missing_count}, remote={remote_count}, templates={template_count}, folders={folder_count})"
