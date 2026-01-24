@@ -14,7 +14,8 @@ def to_json(
     indent: int = 2,
     include_missing: bool = True,
     include_remote: bool = True,
-    include_templates: bool = False,
+    include_templates: bool = True,
+    include_folders: bool = True,
     show_all: bool = False,
 ) -> str:
     """
@@ -28,6 +29,7 @@ def to_json(
         include_missing: If True, include missing (unresolved) references.
         include_remote: If True, include remote (URL) references.
         include_templates: If True, include template (Jinja placeholder) references.
+        include_folders: If True, include folder references.
         show_all: If True, include nodes with no connections. Default False.
     
     Returns:
@@ -71,6 +73,12 @@ def to_json(
         for source, candidate in graph.iter_templates():
             source_str = _get_path_str(source, base, root)
             edges.append({"source": source_str, "target": candidate, "template": True})
+    
+    # Add folder edges if enabled
+    if include_folders:
+        for source, candidate in graph.iter_folders():
+            source_str = _get_path_str(source, base, root)
+            edges.append({"source": source_str, "target": candidate, "folder": True})
     
     data: Dict[str, Any] = {
         "nodes": nodes,

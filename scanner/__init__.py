@@ -2,7 +2,7 @@
 
 from .discovery import iter_files
 from .parser import parse_file, extract_candidate_paths
-from .resolver import resolve_candidate_path
+from .resolver import resolve_candidate_path, resolve_candidate_directory
 from .builder import build_graph
 
 __all__ = [
@@ -10,5 +10,6 @@ __all__ = [
     "parse_file",
     "extract_candidate_paths",
     "resolve_candidate_path",
+    "resolve_candidate_directory",
     "build_graph",
 ]

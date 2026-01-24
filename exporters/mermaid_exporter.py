@@ -15,7 +15,8 @@ def to_mermaid(
     group_by_directory: bool = False,
     include_missing: bool = True,
     include_remote: bool = True,
-    include_templates: bool = False,
+    include_templates: bool = True,
+    include_folders: bool = True,
     show_all: bool = False,
 ) -> str:
     """
@@ -30,6 +31,7 @@ def to_mermaid(
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
         include_templates: If True, show template (Jinja placeholder) references.
+        include_folders: If True, show folder references.
         show_all: If True, include nodes with no connections. Default False.
     
     Returns:
@@ -72,10 +74,17 @@ def to_mermaid(
             if candidate not in template_ids:
                 template_ids[candidate] = _sanitize_id_simple(f"template_{candidate}")
     
+    # Build folder node ID mapping
+    folder_ids: Dict[str, str] = {}
+    if include_folders:
+        for source, candidate in graph.iter_folders():
+            if candidate not in folder_ids:
+                folder_ids[candidate] = _sanitize_id_simple(f"folder_{candidate}")
+    
     if group_by_directory:
-        lines.extend(_generate_grouped_mermaid(graph, root, node_ids, missing_ids, remote_ids, template_ids, include_missing, include_remote, include_templates, nodes_to_show))
+        lines.extend(_generate_grouped_mermaid(graph, root, node_ids, missing_ids, remote_ids, template_ids, folder_ids, include_missing, include_remote, include_templates, include_folders, nodes_to_show))
     else:
-        lines.extend(_generate_flat_mermaid(graph, root, node_ids, missing_ids, remote_ids, template_ids, include_missing, include_remote, include_templates, nodes_to_show))
+        lines.extend(_generate_flat_mermaid(graph, root, node_ids, missing_ids, remote_ids, template_ids, folder_ids, include_missing, include_remote, include_templates, include_folders, nodes_to_show))
     
     return "\n".join(lines)
 
@@ -87,9 +96,11 @@ def _generate_flat_mermaid(
     missing_ids: Dict[str, str],
     remote_ids: Dict[str, str],
     template_ids: Dict[str, str],
+    folder_ids: Dict[str, str],
     include_missing: bool,
     include_remote: bool,
     include_templates: bool,
+    include_folders: bool,
     nodes_to_show: Set[Path],
 ) -> List:
     """Generate flat (non-grouped) Mermaid output."""
@@ -128,6 +139,15 @@ def _generate_flat_mermaid(
             lines.append(f'    {template_id}["{candidate} [TEMPLATE]"]')
             lines.append(f"    style {template_id} stroke:#9933cc,stroke-dasharray: 5 5")
     
+    # Add folder node definitions (with different style)
+    if include_folders and folder_ids:
+        lines.append("")
+        lines.append("    %% Folder references")
+        for candidate in sorted(folder_ids.keys()):
+            folder_id = folder_ids[candidate]
+            lines.append(f'    {folder_id}["{candidate} [FOLDER]"]')
+            lines.append(f"    style {folder_id} stroke:#339933,stroke-dasharray: 5 5")
+    
     # Add edges
     lines.append("")
     for source, target in graph.iter_edges():
@@ -156,6 +176,13 @@ def _generate_flat_mermaid(
             template_id = template_ids[candidate]
             lines.append(f"    {source_id} -.-> {template_id}")
     
+    # Add folder edges (dashed)
+    if include_folders:
+        for source, candidate in graph.iter_folders():
+            source_id = node_ids[source]
+            folder_id = folder_ids[candidate]
+            lines.append(f"    {source_id} -.-> {folder_id}")
+    
     return lines
 
 
@@ -166,9 +193,11 @@ def _generate_grouped_mermaid(
     missing_ids: Dict[str, str],
     remote_ids: Dict[str, str],
     template_ids: Dict[str, str],
+    folder_ids: Dict[str, str],
     include_missing: bool,
     include_remote: bool,
     include_templates: bool,
+    include_folders: bool,
     nodes_to_show: Set[Path],
 ) -> List:
     """Generate Mermaid output with subgraphs grouped by top-level directory."""
@@ -231,6 +260,16 @@ def _generate_grouped_mermaid(
         lines.append("    end")
         lines.append("")
     
+    # Add folder nodes in their own group
+    if include_folders and folder_ids:
+        lines.append("    subgraph folders[Folder References]")
+        for candidate in sorted(folder_ids.keys()):
+            folder_id = folder_ids[candidate]
+            lines.append(f'        {folder_id}["{candidate} [FOLDER]"]')
+            lines.append(f"        style {folder_id} stroke:#339933,stroke-dasharray: 5 5")
+        lines.append("    end")
+        lines.append("")
+    
     # Add edges
     for source, target in graph.iter_edges():
         source_id = node_ids[source]
@@ -257,6 +296,13 @@ def _generate_grouped_mermaid(
             source_id = node_ids[source]
             template_id = template_ids[candidate]
             lines.append(f"    {source_id} -.-> {template_id}")
+    
+    # Add folder edges (dashed)
+    if include_folders:
+        for source, candidate in graph.iter_folders():
+            source_id = node_ids[source]
+            folder_id = folder_ids[candidate]
+            lines.append(f"    {source_id} -.-> {folder_id}")
     
     return lines
 

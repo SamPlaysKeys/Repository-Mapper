@@ -26,7 +26,8 @@ def to_ascii(
     style: str = "tree",
     include_missing: bool = True,
     include_remote: bool = True,
-    include_templates: bool = False,
+    include_templates: bool = True,
+    include_folders: bool = True,
     show_all: bool = False,
 ) -> str:
     """
@@ -40,6 +41,7 @@ def to_ascii(
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
         include_templates: If True, show template (Jinja placeholder) references.
+        include_folders: If True, show folder references.
         show_all: If True, include nodes with no connections. Default False.
     
     Returns:
@@ -94,6 +96,7 @@ def to_ascii(
             include_missing=include_missing,
             include_remote=include_remote,
             include_templates=include_templates,
+            include_folders=include_folders,
         )
         
         # Add blank line between root trees (except after last)
@@ -116,7 +119,8 @@ def _render_node(
     is_root: bool = False,
     include_missing: bool = True,
     include_remote: bool = True,
-    include_templates: bool = False,
+    include_templates: bool = True,
+    include_folders: bool = True,
 ) -> None:
     """
     Recursively render a node and its children.
@@ -135,6 +139,7 @@ def _render_node(
         include_missing: If True, show missing (unresolved) references.
         include_remote: If True, show remote (URL) references.
         include_templates: If True, show template (Jinja placeholder) references.
+        include_folders: If True, show folder references.
     """
     branch, last, vertical, space = chars
     
@@ -176,7 +181,12 @@ def _render_node(
     if include_templates:
         template_refs = sorted(graph.get_templates(node))
     
-    total_items = len(children) + len(missing_refs) + len(remote_refs) + len(template_refs)
+    # Get folder references if enabled
+    folder_refs: List[str] = []
+    if include_folders:
+        folder_refs = sorted(graph.get_folders(node))
+    
+    total_items = len(children) + len(missing_refs) + len(remote_refs) + len(template_refs) + len(folder_refs)
     item_index = 0
     
     # Render resolved children
@@ -204,6 +214,7 @@ def _render_node(
             include_missing=include_missing,
             include_remote=include_remote,
             include_templates=include_templates,
+            include_folders=include_folders,
         )
     
     # Render missing references
@@ -247,6 +258,20 @@ def _render_node(
         
         connector = last if template_is_last else branch
         lines.append(f"{new_prefix}{connector}{template} [TEMPLATE]")
+    
+    # Render folder references
+    for folder in folder_refs:
+        item_index += 1
+        folder_is_last = (item_index == total_items)
+        
+        # Calculate new prefix for folder items
+        if is_root:
+            new_prefix = ""
+        else:
+            new_prefix = prefix + (space if is_last else vertical)
+        
+        connector = last if folder_is_last else branch
+        lines.append(f"{new_prefix}{connector}{folder} [FOLDER]")
     
     # Remove from visited when backtracking (to allow the same node
     # to appear in different branches, but still detect immediate cycles)
