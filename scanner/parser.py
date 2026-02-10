@@ -33,6 +33,25 @@ PATH_KEY_HINTS = {
     "ref", "reference", "$ref",
 }
 
+# Common shell commands that take file/path arguments
+# These should be filtered out when they appear with path targets
+PATH_COMMANDS = {
+    # File permission/ownership commands
+    "chmod", "chown", "chgrp",
+    # File operations
+    "mv", "cp", "rm", "rmdir", "mkdir", "touch", "ln",
+    # File viewing
+    "cat", "head", "tail", "less", "more", "stat",
+    # File listing
+    "ls", "dir", "find",
+    # Archive commands
+    "tar", "gzip", "gunzip", "zip", "unzip",
+    # Other common commands
+    "source", "exec", "bash", "sh", "zsh",
+    "python", "python3", "node", "ruby", "perl",
+    "sudo", "su",
+}
+
 # Keys that often contain URLs/online references
 URL_KEY_HINTS = {
     "$schema", "schema", "$ref", "ref",
@@ -129,6 +148,48 @@ def extract_candidate_paths(
     return candidates
 
 
+def _is_command_with_path_target(value: str) -> bool:
+    """
+    Check if a string looks like a shell command with a path as the target.
+    
+    Detects patterns like:
+    - "chmod 600 /path/to/file"
+    - "sudo rm -rf /some/path"
+    - "cat /etc/config.yaml"
+    
+    Args:
+        value: String value to check.
+    
+    Returns:
+        True if the value appears to be a command with a path target.
+    """
+    # Split on whitespace to get tokens
+    tokens = value.split()
+    if not tokens:
+        return False
+    
+    # Get the first token (potential command)
+    first_token = tokens[0].lower()
+    
+    # Handle sudo/su prefix - check second token as the actual command
+    if first_token in {"sudo", "su"} and len(tokens) > 1:
+        first_token = tokens[1].lower()
+    
+    # Check if the first token (or second after sudo) is a known command
+    if first_token in PATH_COMMANDS:
+        # Must have additional arguments (flags or path) to be considered a command
+        return len(tokens) > 1
+    
+    # Also check for commands with full paths like /usr/bin/chmod
+    if "/" in first_token:
+        # Extract just the command name from the path
+        cmd_name = first_token.rstrip("/").split("/")[-1]
+        if cmd_name in PATH_COMMANDS and len(tokens) > 1:
+            return True
+    
+    return False
+
+
 def _is_likely_path(value: str, aggressive: bool = False) -> bool:
     """
     Determine if a string value looks like a file path.
@@ -153,6 +214,11 @@ def _is_likely_path(value: str, aggressive: bool = False) -> bool:
     
     # Skip values with newlines or tabs
     if "\n" in value or "\t" in value:
+        return False
+    
+    # Skip commands that have a path as the target
+    # e.g., "chmod 600 /test/file.yaml" or "sudo rm -rf /some/path"
+    if _is_command_with_path_target(value):
         return False
     
     if aggressive:
