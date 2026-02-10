@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Repository-Mapper"
-version = "0.6.7"
+version = "0.6.8"
 description = "Scan repositories for cross-file references and generate dependency graphs"
 readme = "README.md"
 license = {text = "GPL"}
