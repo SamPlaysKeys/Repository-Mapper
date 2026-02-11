@@ -212,6 +212,10 @@ def _is_likely_path(value: str, aggressive: bool = False) -> bool:
     if re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}", value):
         return False
     
+    # Skip non-remote paths with ":" unless it's a Windows drive letter (e.g., C:\)
+    if ":" in value and not re.match(r"^[A-Za-z]:\\", value):
+        return False
+    
     # Skip values that are clearly not paths
     if value.startswith(("$", "{", "[", "(", "#", "@")):
         return False
