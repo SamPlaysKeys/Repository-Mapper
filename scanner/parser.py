@@ -208,6 +208,10 @@ def _is_likely_path(value: str, aggressive: bool = False) -> bool:
     if re.match(r"^(https?|tcp)://", value, re.IGNORECASE):
         return False
     
+    # Skip IP addresses in CIDR notation (e.g., 10.0.1.1/24, 193.67.44.20/29)
+    if re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}", value):
+        return False
+    
     # Skip values that are clearly not paths
     if value.startswith(("$", "{", "[", "(", "#", "@")):
         return False
