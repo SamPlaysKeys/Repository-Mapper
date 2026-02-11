@@ -205,7 +205,7 @@ def _is_likely_path(value: str, aggressive: bool = False) -> bool:
         return False
     
     # Skip URLs
-    if re.match(r"^https?://", value, re.IGNORECASE):
+    if re.match(r"^(https?|tcp)://", value, re.IGNORECASE):
         return False
     
     # Skip values that are clearly not paths
@@ -328,8 +328,8 @@ def _is_url(value: str, current_key: Optional[str] = None) -> bool:
     if not value or len(value) > 500:
         return False
     
-    # Must be an HTTP(S) URL
-    if not re.match(r"^https?://", value, re.IGNORECASE):
+    # Must be an HTTP(S) or TCP URL
+    if not re.match(r"^(https?|tcp)://", value, re.IGNORECASE):
         return False
     
     # Check if the key hints at a reference
